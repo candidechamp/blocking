@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.optimize import minimize
-from block_tools import *
+from block_tools import check, blocking, fblocking
 from scipy.stats import gaussian_kde
 from scipy.stats import norm
 
@@ -9,7 +9,11 @@ class BlockAnalysis:
     def __init__(self, x, multi=1, weights=None, bias=None, T=None, interval_low=None, interval_up=None, dt=1):
         self.multi = multi
         self.x = check(x, self.multi)
-        self.w = weights
+        
+        if weights is not None:
+            self.w = check(weights, self.multi)
+        else:
+            self.w = weights
         
         self.interval = [self.x.min(), self.x.max()]
         if (interval_low is not None) and (self.x.min() < interval_low):
@@ -50,7 +54,7 @@ class BlockAnalysis:
             upper_bound = b[1]+b[2]
             bnds = [(lower_bound, upper_bound)]
             c[i] -= minimize( fun=find_n_intersect, x0=b[1], args=self.stat[self.stat[...,0] > b[0]], bounds=bnds ).fun
-       	self.bs = self.stat[...,0][np.argmax(c)]
+        self.bs = self.stat[...,0][np.argmax(c)]
         self.sem = self.stat[...,1][np.argmax(c)]
 
         if self.bs > self.stat[-1,0]/3:

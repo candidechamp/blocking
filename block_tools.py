@@ -1,23 +1,58 @@
 import numpy as np
 
-def blocker(array, multi=1):
+def blocker(array:np.array, multi:int =1):
+    """
+    Divides the array of data into blocks. 
+
+    Parameters
+    ----------
+    array : 
+        Numpy array containing a correlated time series (from MD)
+    multi :
+        Number of replicas in the data. 
+        (Makes sure we don't block data from separate replicas together?? this doesn't seem to do that right now)
+
+    Returns
+    -------
+    dimension : int
+        Length of the input array.
+    n_blocks : np.array
+        Number of blocks we can subdivide the data into.
+    block_sizes : list
+        Number of data point in each corresponding block.
+    """
     dimension = len(array)
     rep = dimension/multi
-    n_blocks_try = np.arange([2 if multi==1 else multi][0],dimension+1)
+    #n_blocks_try = np.arange([2 if multi==1 else multi][0],dimension+1)
+    n_blocks_try = np.arange(2 if multi==1 else multi, dimension+1)
     n_blocks = []
     block_sizes = []
 
     for n in n_blocks_try:
-        bs = dimension/n
+        bs = int(dimension/n)
         if (dimension % n == 0) & (rep % bs == 0):
             n_blocks.append(int(n))
             block_sizes.append(bs)
 
-    return dimension, np.array(n_blocks), block_sizes
+    return dimension, np.array(n_blocks), np.array(block_sizes)
 
-def check(array, multi=1):
+def check(array, multi=1, num_blocks=20):
+    """
+    Check if the length of the array is suitable for blocking analysis. 
+    This will remove a few datapoints if needed (to make the overall array divisible).
+    
+    Parameters
+    ----------
+    array :
+        Numpy array containing a correlated time series (from MD)
+    multi :
+        Number of replicas in the data.
+    num_blocks:
+        Minimum number of blocks we want to be able to divide the data into.
+        
+    """
     nt = len( blocker(array, multi=multi)[1] )
-    if nt > 19:
+    if nt >= num_blocks:
         #print ("Possible blocks transformations: "+str(nt)+"\n no lenght correction needed\n")
         return array
     else:
@@ -31,13 +66,17 @@ def check(array, multi=1):
                 chunks_array = np.concatenate((chunks_array,array[s:e-c]))
             nt = len( blocker(chunks_array, multi=multi)[1] )
             #print ("Possible blocks transformations: "+str(nt)+"\n")
-            if nt > 19:
+            if nt >= num_blocks:
                 break
         return chunks_array
 
  
 def blocking(array, multi=1):
-    
+    """
+    Block analysis based on the average value of the observable. 
+    Similar to what is described here:
+    https://www.blopig.com/blog/2025/05/estimating-uncertainty-in-md-observables-using-block-averaging/
+    """
     u = array.mean()
     N, n_blocks, block_sizes = blocker(array, multi=multi)
     
@@ -61,6 +100,12 @@ def blocking(array, multi=1):
     return np.flip( np.array([block_sizes, errs, errs_errs]).T , axis=0  )
 
 def fblocking(cv, w, kbt, multi=1, interval=None):
+    """
+    Block analysis based on the free energy profile of the observable.
+    
+    Here this looks at the coverage of the CV over the whole simulation, and is therefore not 
+    suitable if the simulation only samples end states.
+    """
 
     N, n_blocks, block_sizes = blocker(cv, multi=multi)
     u, bins = np.histogram(cv,weights=w,bins=50,range=(interval[0],interval[1]))
