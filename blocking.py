@@ -6,7 +6,7 @@ from scipy.stats import norm
 
 class BlockAnalysis:
 
-    def __init__(self, x, multi=1, weights=None, bias=None, T=None, interval_low=None, interval_up=None, dt=1):
+    def __init__(self, x, multi=1, weights=None, bias=None, T=None, interval_low=None, interval_up=None, nbins=50, dt=1):
         self.multi = multi
         self.x = check(x, self.multi)
         
@@ -15,6 +15,8 @@ class BlockAnalysis:
         else:
             self.w = weights
         
+        self.nbins = nbins
+
         self.interval = [self.x.min(), self.x.max()]
         if (interval_low is not None) and (self.x.min() < interval_low):
             self.interval[0] = interval_low
@@ -34,7 +36,7 @@ class BlockAnalysis:
         else:
             self.kbT = 0.008314463*T
             self.w /= self.w.sum()
-            self.stat = fblocking(self.x, self.w, self.kbT, self.multi, self.interval)
+            self.stat = fblocking(self.x, self.w, self.kbT, self.multi, self.interval, self.nbins)
 
         self.stat[...,0] /= dt
 

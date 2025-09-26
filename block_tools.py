@@ -99,7 +99,7 @@ def blocking(array, multi=1):
 
     return np.flip( np.array([block_sizes, errs, errs_errs]).T , axis=0  )
 
-def fblocking(cv, w, kbt, multi=1, interval=None):
+def fblocking(cv, w, kbt, multi=1, interval=None, nbins=50):
     """
     Block analysis based on the free energy profile of the observable.
     
@@ -108,12 +108,14 @@ def fblocking(cv, w, kbt, multi=1, interval=None):
     """
 
     N, n_blocks, block_sizes = blocker(cv, multi=multi)
-    u, bins = np.histogram(cv,weights=w,bins=50,range=(interval[0],interval[1]))
+    u, bins = np.histogram(cv,weights=w,bins=nbins,range=(interval[0],interval[1]))
     zero_ndx = np.where(u==0)    
     u = np.delete(u, zero_ndx)
     bins = np.delete(bins, zero_ndx)
     u = u/N
     
+    print (f'{bins=}')
+
     err = np.zeros(len(block_sizes))
     err_err = np.zeros(len(block_sizes))
     for b in range(len(block_sizes)):
